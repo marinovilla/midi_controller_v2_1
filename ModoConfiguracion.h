@@ -26,33 +26,54 @@ String generarPulsadores() {
         int valorPulsador = EEPROM.read(ADDR_PULSADORES + i);
         int valorCCpulsador = EEPROM.read(ADDR_CC_PULS + i);
         int modoEEPROM = EEPROM.read(ADDR_MODO_PULS + i);
-        String modoActual = (modoEEPROM == 1) ? "CC" : "PC";
-        int valor = (modoActual == "PC") ? valorPulsador : valorCCpulsador;
-        html += "<div style='display: flex; align-items: center; margin-bottom: 10px;'>";
-        html += "<label style='font-size: 12px; font-weight: bold; color: #8e44ad; margin-left: 20px; margin-right: 10px;'>PULSADOR " + String(i + 1) + "</label>";
-        html += "<select name='modo_" + String(i) + "' style='margin-right: 10px;'>";
+        String modoActual = (modoEEPROM == 1) ? "CC" : (modoEEPROM == 2 ? "RL" : "PC");
+        int valor = (modoActual == "PC") ? valorPulsador : (modoActual == "CC" ? valorCCpulsador : 0);
+
+        html += "<div style='display:flex;align-items:center;margin-bottom:10px;'>";
+        html += "<label style='font-size:12px;font-weight:bold;color:#8e44ad;margin-left:20px;margin-right:10px;'>PULSADOR " + String(i + 1) + "</label>";
+        html += "<select name='modo_" + String(i) + "' onchange='actualizarCampoValor(" + String(i) + ")' style='margin-right:10px;'>";
         html += "<option value='PC'" + String(modoActual == "PC" ? " selected" : "") + ">PC</option>";
         html += "<option value='CC'" + String(modoActual == "CC" ? " selected" : "") + ">CC</option>";
+        html += "<option value='RL'" + String(modoActual == "RL" ? " selected" : "") + ">RL</option>";
         html += "</select>";
-        html += "<input type='number' name='valor_" + String(i) + "' min='1' max='128' value='" + String(valor) + "' style='width: 40px; margin-right: 20px;'>";
+        html += "<input type='number' id='valor_" + String(i) + "' name='valor_" + String(i) + "' min='1' max='128' value='" + String(valor) + "' style='width:45px;margin-right:20px;" + String(modoActual == "RL" ? "background:#ccc;' disabled" : "'") + ">";
         for (int r = 0; r < NUM_RELES; r++) {
             bool estado = EEPROM.read(ADDR_RELES + (i * NUM_RELES) + r) == 1;
-            html += "<label style='font-size: 0.8em; color: #ddd; margin-right: 10px;'><input type='checkbox' name='r" + String(r + 1) + "_" + String(i) + "' value='1' " + (estado ? "checked" : "") + "> Relé " + String(r + 1) + "</label>";
+            html += "<label style='font-size:0.8em;color:#ddd;margin-right:10px;'><input type='checkbox' name='r" + String(r + 1) + "_" + String(i) + "' value='1' " + (estado ? "checked" : "") + "> Relé " + String(r + 1) + "</label>";
         }
         html += "</div>";
     }
+
     for (int i = 0; i < NUM_EXPRESION; i++) {
         int valorExp = EEPROM.read(ADDR_CC_EXPRESION + i);
-        html += "<div style='display: flex; align-items: center; margin-bottom: 10px;'>";
-        html += "<label style='font-size:12px; font-weight:bold; color:#8e44ad; margin-left:20px; margin-right:8px;'>CC PEDAL EXPRESIÓN " + String(i + 1) + "</label>";
-        html += "<input type='number' name='EXP_" + String(i) + "' min='0' max='127' value='" + String(valorExp) + "' style='width:40px;'>";
+        html += "<div style='display:flex;align-items:center;margin-bottom:10px;'>";
+        html += "<label style='font-size:12px;font-weight:bold;color:#8e44ad;margin-left:20px;margin-right:10px;'>CC PEDAL EXPRESIÓN " + String(i + 1) + "</label>";
+        html += "<input type='number' name='EXP_" + String(i) + "' min='0' max='127' value='" + String(valorExp) + "' style='width:45px;margin-left:12px;'>";
         html += "</div>";
     }
+
+    html += R"rawliteral(
+<script>
+function actualizarCampoValor(i){
+  var modo=document.getElementsByName('modo_'+i)[0].value;
+  var campo=document.getElementById('valor_'+i);
+  if(modo==='RL'){
+    campo.disabled=true;
+    campo.style.background='#ccc';
+    campo.value='';
+  }else{
+    campo.disabled=false;
+    campo.style.background='';
+  }
+}
+</script>
+)rawliteral";
+
     return html;
 }
 
 void iniciarServidorWeb() {
-    EEPROM.begin(512);
+    EEPROM.begin(1024);
     WiFi.softAP(AP_SSID, AP_PASSWORD);
     WiFi.setHostname(HOST_NAME);
     Serial.println("Punto de acceso WiFi iniciado");
@@ -67,12 +88,30 @@ void iniciarServidorWeb() {
     });
 
     server.on("/set", HTTP_GET, [](AsyncWebServerRequest *request) {
+        bool error = false;
+        String htmlError = "";
         for (int i = 0; i < NUM_PULSADORES; i++) {
             String Modo = "modo_" + String(i);
             String Numero = "valor_" + String(i);
-            if (request->hasParam(Modo) && request->hasParam(Numero)) {
-                String modo = request->getParam(Modo)->value();
-                int valor = request->getParam(Numero)->value().toInt();
+            String modo = request->hasParam(Modo) ? request->getParam(Modo)->value() : "PC";
+            int valor = request->hasParam(Numero) ? request->getParam(Numero)->value().toInt() : 0;
+            if (modo == "RL") {
+                bool algunRele = false;
+                for (int r = 0; r < NUM_RELES; r++) {
+                    if (request->hasParam("r" + String(r + 1) + "_" + String(i))) {
+                        algunRele = true;
+                        break;
+                    }
+                }
+                if (!algunRele) {
+                    htmlError = "<script>alert('Seleccione relés en pulsadores Modo RL');</script>";
+                    error = true;
+                    break;
+                }
+                EEPROM.write(ADDR_PULSADORES + i, 0);
+                EEPROM.write(ADDR_CC_PULS + i, 0);
+                EEPROM.write(ADDR_MODO_PULS + i, 2);
+            } else {
                 if (valor < 1) valor = 1;
                 if (valor > 128) valor = 128;
                 if (modo == "PC") {
@@ -89,6 +128,14 @@ void iniciarServidorWeb() {
                 EEPROM.write(ADDR_RELES + (i * NUM_RELES) + r, request->hasParam("r" + String(r + 1) + "_" + String(i)) ? 1 : 0);
             }
         }
+
+        if (error) {
+            String html = paginaHTML;
+            html.replace("%PULSADORES%", generarPulsadores());
+            request->send(200, "text/html; charset=UTF-8", htmlError + html);
+            return;
+        }
+
         for (int i = 0; i < NUM_EXPRESION; i++) {
             if (request->hasParam("EXP_" + String(i))) {
                 int valor = request->getParam("EXP_" + String(i))->value().toInt();
@@ -97,6 +144,7 @@ void iniciarServidorWeb() {
                 EEPROM.write(ADDR_CC_EXPRESION + i, (uint8_t)valor);
             }
         }
+
         EEPROM.commit();
         request->send(200, "text/html; charset=UTF-8", "<script>alert('¡Configuración guardada!'); window.location.href = '/';</script>");
     });

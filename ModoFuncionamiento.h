@@ -30,6 +30,11 @@ void ledsModoFuncionamiento() {
 
 void aplicarReles(bool nuevos_estados[]) {
     for (int r = 0; r < NUM_RELES; r++) {
+        if (estado_rele[r] != nuevos_estados[r]) {
+            Serial.print("Rele");
+            Serial.print(r + 1);
+            Serial.println(nuevos_estados[r] ? " on" : " off");
+        }
         estado_rele[r] = nuevos_estados[r];
         digitalWrite(PINES_RELES[r], nuevos_estados[r] ? HIGH : LOW);
         digitalWrite(PINES_LEDS_RELES[r], nuevos_estados[r] ? HIGH : LOW);
@@ -80,22 +85,18 @@ void Pulsadores() {
                     programa = programas[i];
                     programa_midi(programa);
                     programa_anterior = programa;
-                    for (int j = 0; j < NUM_PULSADORES; j++) {
+                    for (int j = 0; j < NUM_PULSADORES; j++)
                         digitalWrite(PINES_LEDS[j], (j == i) ? HIGH : LOW);
-                    }
                     bool nuevos_estados[NUM_RELES];
-                    for (int r = 0; r < NUM_RELES; r++) {
+                    for (int r = 0; r < NUM_RELES; r++)
                         nuevos_estados[r] = config_rele[i][r];
-                    }
                     aplicarReles(nuevos_estados);
                     ultimo_pulsador = i;
                     for (int k = 0; k < NUM_PULSADORES; k++) {
                         estado_cc[k] = false;
-                        if (modo_pulsador[k] == 1) {
-                            digitalWrite(PINES_LEDS[k], LOW);
-                        }
+                        if (modo_pulsador[k] == 1) digitalWrite(PINES_LEDS[k], LOW);
                     }
-                } else {
+                } else if (modo_pulsador[i] == 1) {
                     estado_cc[i] = !estado_cc[i];
                     int valor = estado_cc[i] ? 127 : 0;
                     enviarExpresionMidi(valor, cc_pulsador[i]);
@@ -106,6 +107,16 @@ void Pulsadores() {
                         if (config_rele[i][r]) nuevos_estados[r] = !estado_rele[r];
                     }
                     aplicarReles(nuevos_estados);
+                } else if (modo_pulsador[i] == 2) {
+                    bool nuevos_estados[NUM_RELES];
+                    for (int r = 0; r < NUM_RELES; r++) {
+                        nuevos_estados[r] = estado_rele[r];
+                        if (config_rele[i][r]) nuevos_estados[r] = !estado_rele[r];
+                    }
+                    aplicarReles(nuevos_estados);
+                    digitalWrite(PINES_LEDS[i], HIGH);
+                    delay(100);
+                    digitalWrite(PINES_LEDS[i], LOW);
                 }
             }
         }
