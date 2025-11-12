@@ -15,7 +15,7 @@ const char paginaHTML[] PROGMEM = R"rawliteral(
     <style>
         body { font-family: Arial, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 0; }
         h1 { text-align: center; color: #8e44ad; font-size: 22px; margin-top: 20px; text-transform: uppercase; }
-        form { width: 100%; max-width: 430px; margin: auto; padding: 15px; background-color: #1e1e1e; border-radius: 8px; 
+        form { width: 100%; max-width: 430px;  margin: 10px auto 40px auto; padding: 15px; background-color: #1e1e1e; border-radius: 8px; 
                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; }
         label { font-size: 14px; color: #fff; margin-right: 10px; }
         input[type='number'] { width: 80px; padding: 8px; margin: 5px; border: 2px solid #444; border-radius: 8px; 

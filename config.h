@@ -1,12 +1,12 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define NUM_PULSADORES 5
+#define NUM_PULSADORES 6
 #define NUM_RELES 2
 #define NUM_EXPRESION 2
 
-const int PINES_PULSADORES[NUM_PULSADORES] = {5, 6, 7, 15, 16};
-const int PINES_LEDS[NUM_PULSADORES] = {9, 10, 11, 12, 13};
+const int PINES_PULSADORES[NUM_PULSADORES] = {5, 6, 7, 15, 16, 3};
+const int PINES_LEDS[NUM_PULSADORES] = {9, 10, 11, 12, 13,46};
 const int PINES_RELES[NUM_RELES] = {47, 48};
 const int PINES_LEDS_RELES[NUM_RELES] = {20, 21};
 const int PINES_EXPRESION[NUM_EXPRESION] = {1, 2};
