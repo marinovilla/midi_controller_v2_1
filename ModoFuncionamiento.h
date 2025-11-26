@@ -1,9 +1,10 @@
 #ifndef MODO_FUNCIONAMIENTO_H
 #define MODO_FUNCIONAMIENTO_H
 
+#include <EEPROM.h>
 #include "config.h"
 #include "midi.h"
-#include <EEPROM.h>
+#include "ModoPerfiles.h"
 
 int estado_pulsador[NUM_PULSADORES] = {HIGH};
 int programas[NUM_PULSADORES] = {-1};
@@ -17,9 +18,10 @@ bool estado_rele[NUM_RELES] = {false};
 int ultimo_pulsador = -1;
 int programa = -1;
 int programa_anterior = -1;
-extern bool ini_PC_zero;
+int zero_iniciar = 1;
 
-void ledsModoFuncionamiento() {
+void ledsModoFuncionamiento()
+{
     for (int i = 0; i < NUM_PULSADORES; i++) {
         pinMode(PINES_LEDS[i], OUTPUT);
         digitalWrite(PINES_LEDS[i], HIGH);
@@ -29,7 +31,8 @@ void ledsModoFuncionamiento() {
     }
 }
 
-void aplicarReles(bool nuevos_estados[]) {
+void aplicarReles(bool nuevos_estados[])
+{
     for (int r = 0; r < NUM_RELES; r++) {
         if (estado_rele[r] != nuevos_estados[r]) {
             Serial.print("Rele");
@@ -42,24 +45,26 @@ void aplicarReles(bool nuevos_estados[]) {
     }
 }
 
-void cargarConfiguracion() {
+void cargarConfiguracion(int perfil)
+{
     EEPROM.begin(1024);
     for (int i = 0; i < NUM_PULSADORES; i++) {
-        programas[i] = EEPROM.read(ADDR_PULSADORES + i);
-        cc_pulsador[i] = EEPROM.read(ADDR_CC_PULS + i);
-        modo_pulsador[i] = EEPROM.read(ADDR_MODO_PULS + i);
+        programas[i] = EEPROM.read(ADDR_PULSADORES(perfil) + i);
+        cc_pulsador[i] = EEPROM.read(ADDR_CC_PULS(perfil) + i);
+        modo_pulsador[i] = EEPROM.read(ADDR_MODO_PULS(perfil) + i);
         for (int r = 0; r < NUM_RELES; r++) {
-            config_rele[i][r] = EEPROM.read(ADDR_RELES + (i * NUM_RELES) + r) == 1;
+            config_rele[i][r] = EEPROM.read(ADDR_RELES(perfil) + (i * NUM_RELES) + r) == 1;
         }
     }
     for (int i = 0; i < NUM_EXPRESION; i++) {
-        cc_expresion[i] = EEPROM.read(ADDR_CC_EXPRESION + i);
+        cc_expresion[i] = EEPROM.read(ADDR_CC_EXPRESION(perfil) + i);
     }
-    ini_PC_zero = EEPROM.read(ADDR_ZERO) == 1;
+    zero_iniciar = EEPROM.read(ADDR_PC_CERO(perfil));
     EEPROM.end();
 }
 
-void setupModoFuncionamiento() {
+void setupModoFuncionamiento()
+{
     for (int i = 0; i < NUM_PULSADORES; i++) {
         pinMode(PINES_PULSADORES[i], INPUT_PULLUP);
         pinMode(PINES_LEDS[i], OUTPUT);
@@ -74,10 +79,12 @@ void setupModoFuncionamiento() {
     for (int i = 0; i < NUM_EXPRESION; i++) {
         pinMode(PINES_EXPRESION[i], INPUT);
     }
+    pinMode(PIN_PERFIL, INPUT_PULLUP);
     ledsModoFuncionamiento();
 }
 
-void Pulsadores() {
+void Pulsadores()
+{
     for (int i = 0; i < NUM_PULSADORES; i++) {
         int estado_actual = digitalRead(PINES_PULSADORES[i]);
         if (estado_actual == LOW && estado_pulsador[i] == HIGH) {
@@ -85,7 +92,7 @@ void Pulsadores() {
             if (digitalRead(PINES_PULSADORES[i]) == LOW) {
                 if (modo_pulsador[i] == 0) {
                     programa = programas[i];
-                    int pc_cmd = programa + (ini_PC_zero ? -1 : 0);
+                    int pc_cmd = programa + (zero_iniciar == 1 ? 0 : 1);
                     programa_midi(pc_cmd);
                     programa_anterior = pc_cmd;
                     for (int j = 0; j < NUM_PULSADORES; j++)
@@ -127,7 +134,8 @@ void Pulsadores() {
     }
 }
 
-void Expresion() {
+void Expresion()
+{
     for (int i = 0; i < NUM_EXPRESION; i++) {
         int valor_pedal = map(analogRead(PINES_EXPRESION[i]), 0, 4095, 0, 127);
         if (abs(valor_pedal - exp_anterior[i]) > 3) {
@@ -137,12 +145,35 @@ void Expresion() {
     }
 }
 
-void Modo_Funcionamiento() {
+void verificarEntradaModoPerfil()
+{
+    if (!estaModoPerfilActivo() && digitalRead(PIN_PERFIL) == LOW) {
+        delay(50);
+        if (digitalRead(PIN_PERFIL) == LOW) {
+            iniciarModoPerfil();
+        }
+    }
+}
+
+void Modo_Funcionamiento()
+{
     setupModoFuncionamiento();
-    cargarConfiguracion();
+
+    EEPROM.begin(1024);
+    int perfilDef = EEPROM.read(ADDR_PERFIL_DEFECTO);
+    EEPROM.end();
+    if (perfilDef < 0 || perfilDef >= NUM_PERFILES) perfilDef = 0;
+
+    cargarConfiguracion(perfilDef);
+
     while (true) {
-        Pulsadores();
-        Expresion();
+        verificarEntradaModoPerfil();
+        if (estaModoPerfilActivo()) {
+            manejarModoPerfil();
+        } else {
+            Pulsadores();
+            Expresion();
+        }
         delay(10);
     }
 }

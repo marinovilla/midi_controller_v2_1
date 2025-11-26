@@ -3,7 +3,7 @@
 #include "ModoConfiguracion.h"
 #include "ModoFuncionamiento.h"
 #include <HardwareSerial.h>
-
+#include "IniciarEEPROM.h"
 unsigned long Tiempo = millis();
 bool modoConfiguracion = false;
 
@@ -24,6 +24,7 @@ void selector_modo() {
     }
     if (modoConfiguracion) {
         Serial.println("*** Modo Configuración ***");
+        ini_EEPROM();
         Modo_Configuracion();    
     }
 }
