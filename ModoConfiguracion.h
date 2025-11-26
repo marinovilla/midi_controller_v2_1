@@ -9,7 +9,6 @@
 #include "config.h"
 
 AsyncWebServer server(80);
-
 extern bool ini_PC_zero;
 
 void ledsModoConfiguracion() {
@@ -41,7 +40,8 @@ String generarPulsadores() {
         html += "<input type='number' id='valor_" + String(i) + "' name='valor_" + String(i) + "' min='1' max='128' value='" + String(valor) + "' style='width:45px;margin-right:20px;" + String(modoActual == "RL" ? "background:#ccc;' disabled" : "'") + ">";
         for (int r = 0; r < NUM_RELES; r++) {
             bool estado = EEPROM.read(ADDR_RELES + (i * NUM_RELES) + r) == 1;
-            html += "<label style='font-size:0.8em;color:#ddd;margin-right:10px;'><input type='checkbox' name='r" + String(r + 1) + "_" + String(i) + "' value='1' " + (estado ? "checked" : "") + "> Relé " + String(r + 1) + "</label>";
+            html += "<label style='font-size:0.8em;color:#fff;margin-right:10px;display:inline-flex;align-items:center;'>";
+            html += "<input type='checkbox' name='r" + String(r + 1) + "_" + String(i) + "' value='1' " + (estado ? "checked" : "") + " style='accent-color:#8e44ad;'> Relé " + String(r + 1) + "</label>";
         }
         html += "</div>";
     }
@@ -54,7 +54,10 @@ String generarPulsadores() {
         html += "</div>";
     }
 
-    html += "<div style='margin-left:20px;margin-bottom:20px;'><label><input type='checkbox' id='zero'> Iniciar en 0</label></div>";
+    html += "<div style='margin-left:20px;margin-bottom:20px;'>";
+    html += "<label style='font-size:12px;font-weight:bold;color:#fff;display:inline-flex;align-items:center;'>";
+    html += "<input type='checkbox' name='zero' value='1' " + String(EEPROM.read(ADDR_ZERO) == 1 ? "checked" : "") + " style='accent-color:#8e44ad;margin-right:6px;'> Iniciar PC en 0 (mensaje MIDI PC-1)";
+    html += "</label></div>";
 
     html += R"rawliteral(
 <script>
@@ -69,9 +72,6 @@ function actualizarCampoValor(i){
     campo.disabled=false;
     campo.style.background='';
   }
-}
-window.onload = function(){
-    document.getElementById('zero').checked = )rawliteral" + String(ini_PC_zero ? "true" : "false") + R"rawliteral(;
 }
 </script>
 )rawliteral";
@@ -92,7 +92,7 @@ void iniciarServidorWeb() {
     });
 
     server.on("/set", HTTP_GET, [](AsyncWebServerRequest *request) {
-        ini_PC_zero = request->hasParam("zero") && request->getParam("zero")->value() == "1";
+        ini_PC_zero = request->hasParam("zero");
         EEPROM.write(ADDR_ZERO, ini_PC_zero ? 1 : 0);
 
         for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -141,7 +141,9 @@ void iniciarServidorWeb() {
         }
 
         EEPROM.commit();
-        request->send(200, "text/html; charset=UTF-8", "<script>alert('¡Configuración guardada!'); window.location.href = '/';</script>");
+        String html = paginaHTML;
+        html.replace("%PULSADORES%", generarPulsadores());
+        request->send(200, "text/html; charset=UTF-8", "<script>alert('¡Configuración guardada!'); window.location.href = '/';</script>" + html);
     });
 
     server.begin();

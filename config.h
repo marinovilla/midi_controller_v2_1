@@ -12,6 +12,8 @@ const int PINES_LEDS_RELES[NUM_RELES] = {20, 21};
 const int PINES_EXPRESION[NUM_EXPRESION] = {1, 2};
 const int PIN_MODO = 19;
 
+bool ini_PC_zero = false;
+
 #define ADDR_PULSADORES 0
 #define ADDR_RELES 100
 #define ADDR_CC_PULS 200

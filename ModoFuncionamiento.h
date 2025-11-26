@@ -17,7 +17,7 @@ bool estado_rele[NUM_RELES] = {false};
 int ultimo_pulsador = -1;
 int programa = -1;
 int programa_anterior = -1;
-bool ini_PC_zero = false;
+extern bool ini_PC_zero;
 
 void ledsModoFuncionamiento() {
     for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -31,6 +31,11 @@ void ledsModoFuncionamiento() {
 
 void aplicarReles(bool nuevos_estados[]) {
     for (int r = 0; r < NUM_RELES; r++) {
+        if (estado_rele[r] != nuevos_estados[r]) {
+            Serial.print("Rele");
+            Serial.print(r + 1);
+            Serial.println(nuevos_estados[r] ? " on" : " off");
+        }
         estado_rele[r] = nuevos_estados[r];
         digitalWrite(PINES_RELES[r], nuevos_estados[r] ? HIGH : LOW);
         digitalWrite(PINES_LEDS_RELES[r], nuevos_estados[r] ? HIGH : LOW);
@@ -50,7 +55,7 @@ void cargarConfiguracion() {
     for (int i = 0; i < NUM_EXPRESION; i++) {
         cc_expresion[i] = EEPROM.read(ADDR_CC_EXPRESION + i);
     }
-    ini_PC_zero = EEPROM.read(ADDR_ZERO);
+    ini_PC_zero = EEPROM.read(ADDR_ZERO) == 1;
     EEPROM.end();
 }
 
@@ -80,7 +85,7 @@ void Pulsadores() {
             if (digitalRead(PINES_PULSADORES[i]) == LOW) {
                 if (modo_pulsador[i] == 0) {
                     programa = programas[i];
-                    int pc_cmd = programa + (ini_PC_zero == 1 ? 0 : 1);
+                    int pc_cmd = programa + (ini_PC_zero ? -1 : 0);
                     programa_midi(pc_cmd);
                     programa_anterior = pc_cmd;
                     for (int j = 0; j < NUM_PULSADORES; j++)
