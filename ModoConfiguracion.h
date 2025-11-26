@@ -10,6 +10,8 @@
 
 AsyncWebServer server(80);
 
+extern bool ini_PC_zero;
+
 void ledsModoConfiguracion() {
     for (int i = 0; i < NUM_PULSADORES; i++) {
         pinMode(PINES_LEDS[i], OUTPUT);
@@ -52,6 +54,8 @@ String generarPulsadores() {
         html += "</div>";
     }
 
+    html += "<div style='margin-left:20px;margin-bottom:20px;'><label><input type='checkbox' id='zero'> Iniciar en 0</label></div>";
+
     html += R"rawliteral(
 <script>
 function actualizarCampoValor(i){
@@ -66,6 +70,9 @@ function actualizarCampoValor(i){
     campo.style.background='';
   }
 }
+window.onload = function(){
+    document.getElementById('zero').checked = )rawliteral" + String(ini_PC_zero ? "true" : "false") + R"rawliteral(;
+}
 </script>
 )rawliteral";
 
@@ -76,9 +83,6 @@ void iniciarServidorWeb() {
     EEPROM.begin(1024);
     WiFi.softAP(AP_SSID, AP_PASSWORD);
     WiFi.setHostname(HOST_NAME);
-    Serial.println("Punto de acceso WiFi iniciado");
-    Serial.print("Dirección IP: ");
-    Serial.println(WiFi.softAPIP());
     MDNS.begin(mdns);
 
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -88,13 +92,15 @@ void iniciarServidorWeb() {
     });
 
     server.on("/set", HTTP_GET, [](AsyncWebServerRequest *request) {
-        bool error = false;
-        String htmlError = "";
+        ini_PC_zero = request->hasParam("zero") && request->getParam("zero")->value() == "1";
+        EEPROM.write(ADDR_ZERO, ini_PC_zero ? 1 : 0);
+
         for (int i = 0; i < NUM_PULSADORES; i++) {
             String Modo = "modo_" + String(i);
             String Numero = "valor_" + String(i);
             String modo = request->hasParam(Modo) ? request->getParam(Modo)->value() : "PC";
             int valor = request->hasParam(Numero) ? request->getParam(Numero)->value().toInt() : 0;
+
             if (modo == "RL") {
                 bool algunRele = false;
                 for (int r = 0; r < NUM_RELES; r++) {
@@ -103,11 +109,7 @@ void iniciarServidorWeb() {
                         break;
                     }
                 }
-                if (!algunRele) {
-                    htmlError = "<script>alert('Seleccione relés en pulsadores Modo RL');</script>";
-                    error = true;
-                    break;
-                }
+                if (!algunRele) break;
                 EEPROM.write(ADDR_PULSADORES + i, 0);
                 EEPROM.write(ADDR_CC_PULS + i, 0);
                 EEPROM.write(ADDR_MODO_PULS + i, 2);
@@ -127,13 +129,6 @@ void iniciarServidorWeb() {
             for (int r = 0; r < NUM_RELES; r++) {
                 EEPROM.write(ADDR_RELES + (i * NUM_RELES) + r, request->hasParam("r" + String(r + 1) + "_" + String(i)) ? 1 : 0);
             }
-        }
-
-        if (error) {
-            String html = paginaHTML;
-            html.replace("%PULSADORES%", generarPulsadores());
-            request->send(200, "text/html; charset=UTF-8", htmlError + html);
-            return;
         }
 
         for (int i = 0; i < NUM_EXPRESION; i++) {
