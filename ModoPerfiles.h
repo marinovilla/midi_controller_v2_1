@@ -13,7 +13,7 @@ static bool _blinkState = false;
 
 void iniciarModoPerfil()
 {
-    EEPROM.begin(1024);
+    EEPROM.begin(EEPROM_TOTAL + 16);
     int pdef = EEPROM.read(ADDR_PERFIL_DEFECTO);
     EEPROM.end();
     if (pdef < 0 || pdef >= NUM_PERFILES) pdef = 0;
@@ -60,7 +60,7 @@ void manejarModoPerfil()
     if (digitalRead(PIN_PERFIL) == LOW) {
         delay(50);
         if (digitalRead(PIN_PERFIL) == LOW) {
-            EEPROM.begin(1024);
+            EEPROM.begin(EEPROM_TOTAL + 16);
             EEPROM.write(ADDR_PERFIL_DEFECTO, _perfilSeleccionado);
             EEPROM.commit();
             EEPROM.end();

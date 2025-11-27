@@ -1,21 +1,16 @@
+#include "html.h"
 #include "config.h"
 #include "midi.h"
 #include "ModoConfiguracion.h"
 #include "ModoFuncionamiento.h"
 #include <HardwareSerial.h>
 #include "IniciarEEPROM.h"
-unsigned long Tiempo = millis();
+
+unsigned long Tiempo = 0;
 bool modoConfiguracion = false;
 
-void setup() {
-    Serial.begin(115200);
-    Serial_MIDI.begin(31250, SERIAL_8N1, RXD_PIN, TXD_PIN); 
-    pinMode(PIN_MODO, INPUT_PULLUP);
-    Serial.println("Esperando para determinar el modo...");
-    selector_modo();
-}
-
 void selector_modo() {
+    Tiempo = millis();
     while (millis() - Tiempo < 5000) {
         if (digitalRead(PIN_MODO) == LOW) {
             modoConfiguracion = true;
@@ -23,13 +18,18 @@ void selector_modo() {
         }
     }
     if (modoConfiguracion) {
-        Serial.println("*** Modo Configuración ***");
-        ini_EEPROM();
-        Modo_Configuracion();    
+        //ini_EEPROM();
+        Modo_Configuracion();
     }
 }
 
+void setup() {
+    Serial.begin(115200);
+    Serial_MIDI.begin(31250, SERIAL_8N1, RXD_PIN, TXD_PIN);
+    pinMode(PIN_MODO, INPUT_PULLUP);
+    selector_modo();
+}
+
 void loop() {
-  Serial.println("*** Modo Funcionamiento ***"); 
   Modo_Funcionamiento();
 }
