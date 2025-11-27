@@ -57,18 +57,6 @@ String generarPulsadoresPorPerfil(int perfil, int perfilActivo) {
         }
         html += "</div>";
     }
-    for (int i = 0; i < NUM_EXPRESION; i++) {
-        int valorExp = EEPROM.read(ADDR_CC_EXPRESION(perfil) + i);
-        html += "<div style='display:flex;align-items:center;margin-bottom:10px;'>";
-        html += "<label style='font-size:12px;font-weight:bold;color:#8e44ad;margin-left:20px;margin-right:10px;'>CC PEDAL EXPRESIÓN " + String(i + 1) + "</label>";
-        html += "<input type='number' name='EXP_" + String(perfil) + "_" + String(i) + "' min='0' max='127' value='" + String(valorExp) + "' style='width:45px;margin-left:12px;'>";
-        html += "</div>";
-    }
-    int iniZero = EEPROM.read(ADDR_PC_CERO(perfil));
-    html += "<div style='margin-left:20px;margin-bottom:20px;'>";
-    html += "<label style='font-size:12px;color:#fff;display:inline-flex;align-items:center;'>";
-    html += "<input type='checkbox' name='zero_" + String(perfil) + "' value='1' " + String(iniZero == 1 ? "checked" : "") + " style='accent-color:#8e44ad;margin-right:6px;'> Iniciar PC en 0 (mensaje MIDI PC-1)";
-    html += "</label></div>";
     html += "</div>";
     return html;
 }
