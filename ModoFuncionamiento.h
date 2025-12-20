@@ -17,7 +17,9 @@ bool estado_rele[NUM_RELES] = {false};
 int ultimo_pulsador = -1;
 int programa = -1;
 int programa_anterior = -1;
+int valor_CC = 0;
 extern bool ini_PC_zero;
+extern bool ini_CC_modo;
 
 void ledsModoFuncionamiento() {
     for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -55,7 +57,8 @@ void cargarConfiguracion() {
     for (int i = 0; i < NUM_EXPRESION; i++) {
         cc_expresion[i] = EEPROM.read(ADDR_CC_EXPRESION + i);
     }
-    ini_PC_zero = EEPROM.read(ADDR_ZERO) == 1;
+    ini_PC_zero= EEPROM.read(ADDR_ZERO) == 1;
+    ini_CC_modo = EEPROM.read(ADDR_CC_SW_TG) == 1;
     EEPROM.end();
 }
 
@@ -101,8 +104,14 @@ void Pulsadores() {
                     }
                 } else if (modo_pulsador[i] == 1) {
                     estado_cc[i] = !estado_cc[i];
-                    int valor = estado_cc[i] ? 127 : 0;
-                    enviarExpresionMidi(valor, cc_pulsador[i]);
+                    if (ini_CC_modo==0){
+                        valor_CC = estado_cc[i] ? 127 : 0;
+                    }
+                    else {
+                        valor_CC = 127;
+                    }
+
+                    enviarExpresionMidi(valor_CC, cc_pulsador[i]);
                     digitalWrite(PINES_LEDS[i], estado_cc[i] ? HIGH : LOW);
                     bool nuevos_estados[NUM_RELES];
                     for (int r = 0; r < NUM_RELES; r++) {

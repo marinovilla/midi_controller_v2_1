@@ -13,6 +13,7 @@ const int PINES_EXPRESION[NUM_EXPRESION] = {1, 2};
 const int PIN_MODO = 19;
 
 bool ini_PC_zero = false;
+bool ini_CC_modo = false;
 
 #define ADDR_PULSADORES 0
 #define ADDR_RELES 100
@@ -22,6 +23,7 @@ bool ini_PC_zero = false;
 #define ADDR_CC_EXPRESION 500
 #define ADDR_MODO_EXPRESION 600
 #define ADDR_ZERO 700
+#define ADDR_CC_SW_TG 800
 
 HardwareSerial Serial_MIDI(1);
 #define TXD_PIN 17

@@ -10,6 +10,7 @@
 
 AsyncWebServer server(80);
 extern bool ini_PC_zero;
+extern bool ini_CC_modo; 
 
 void ledsModoConfiguracion() {
     for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -59,6 +60,12 @@ String generarPulsadores() {
     html += "<input type='checkbox' name='zero' value='1' " + String(EEPROM.read(ADDR_ZERO) == 1 ? "checked" : "") + " style='accent-color:#8e44ad;margin-right:6px;'> Iniciar PC en 0 (mensaje MIDI PC-1)";
     html += "</label></div>";
 
+    html += "<div style='margin-left:20px;margin-bottom:20px;'>";
+    html += "<label style='font-size:12px;font-weight:bold;color:#fff;display:inline-flex;align-items:center;'>";
+    html += "<input type='checkbox' name='modo_cc_sw' value='1' " + String(EEPROM.read(ADDR_CC_SW_TG) == 1 ? "checked" : "") + " style='accent-color:#8e44ad;margin-right:6px;'> Pulsadores CC modo switch (toggle por defecto)";
+    html += "</label></div>";
+
+
     html += R"rawliteral(
 <script>
 function actualizarCampoValor(i){
@@ -94,6 +101,9 @@ void iniciarServidorWeb() {
     server.on("/set", HTTP_GET, [](AsyncWebServerRequest *request) {
         ini_PC_zero = request->hasParam("zero");
         EEPROM.write(ADDR_ZERO, ini_PC_zero ? 1 : 0);
+        ini_CC_modo = request->hasParam("modo_cc_sw");
+        EEPROM.write(ADDR_CC_SW_TG, ini_CC_modo ? 1 : 0);
+
 
         for (int i = 0; i < NUM_PULSADORES; i++) {
             String Modo = "modo_" + String(i);
