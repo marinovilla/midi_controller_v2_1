@@ -1,0 +1,14 @@
+ESP32 3.3V
+   |
+  470Ω
+   |
+  RING ───── pedal ───── GND
+   |
+  100nF
+   |
+  GND
+
+TIP ───────── ADC ESP32
+TIP_N ─────── GND
+
+RING_N ── 22k ── GND   (opcional)
